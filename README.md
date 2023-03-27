@@ -10,7 +10,7 @@ Levenshtein.distance and Levenshtein.ratio are two different methods to compare 
      the minimum number of single-character edits (insertions, deletions, or substitutions) required to  
      transform one string into the other. The higher the distance, the more different the strings are.
 
-- Levenshtein.ratio: This function computes the similarity ratio between two strings. It is calculated  
+- Levenshtein.ratio (used by default and recommended): This function computes the similarity ratio between two strings. It is calculated  
     as:
     ```
     (1 - Levenshtein.distance(s1, s2) / max(len(s1), len(s2)))

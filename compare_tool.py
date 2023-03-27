@@ -25,7 +25,7 @@ def get_files(directory: str, exclude: List[str]) -> List[str]:
     :param exclude: A list of exclusion patterns (wildcards).
     :return: A list of file paths in the given directory, excluding the ones that match the exclusion patterns.
     """
-    all_files = [str(file) for file in Path(directory).rglob('*') if file.is_file() and not is_excluded(file.name, exclude)]
+    all_files = [str(file) for file in Path(directory).rglob('*') if file.is_file() and not is_excluded(str(file), exclude)]
     return all_files
 
 def get_language_from_extension(extension: str) -> str:
@@ -120,9 +120,18 @@ def remove_python_comments(code: str) -> str:
     :param code: The input code as a string.
     :return: The input code with comments removed.
     """
-    code = re.sub(r"(?:^\s*#.*$|'''[\s\S]*?'''|\"\"\"[\s\S]*?\"\"\")", "", code, flags=re.MULTILINE)
+    code = re.sub(r"(?:#.*$|'''[\s\S]*?'''|\"\"\"[\s\S]*?\"\"\")", "", code, flags=re.MULTILINE)
     return code
 
+def remove_vyper_comments(code: str) -> str:
+    """
+    Remove comments from Vyper code.
+
+    :param code: The input code as a string.
+    :return: The input code with comments removed.
+    """
+    code = re.sub(r"#[^\n]*", "", code)
+    return code
 
 def remove_comments(language: str, code: str) -> str:
     """
@@ -136,6 +145,8 @@ def remove_comments(language: str, code: str) -> str:
         return remove_rust_solidity_comments(code)
     elif language == 'Python':
         return remove_python_comments(code)
+    elif language == 'Vyper':
+        return remove_vyper_comments(code)
     else:
         raise NotImplementedError(f"Unsupported language: {language}")
 
