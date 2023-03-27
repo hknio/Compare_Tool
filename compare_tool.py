@@ -179,7 +179,6 @@ def compare_files(file1: str, file2: str, language1: str, language2: str, method
     content1_filtered = "\n".join(lines1)
     content2_filtered = "\n".join(lines2)
 
-    loc1 = len(lines1)
     loc2 = len(lines2)
 
     if method == 'distance':
@@ -279,19 +278,19 @@ if __name__ == "__main__":
         total_lines_of_code = sum(r[-2] for r in results)
 
         if args.method == 'distance':
-            headers = ["Name of the file", "Similarity (Distance)", "Difference (Distance)", "Lines of code", "Lines Difference"]
+            headers = ["Name of the file", "Similarity (Distance)", "Difference (Distance)", "Lines of code"]
             total_similarity = sum(r[1] * r[5] / 100 for r in results) / total_lines_of_code * 100
             total_difference = 100 - total_similarity
-            results = [(r[0], format(r[1], '.2f'), format(r[2], '.2f'), r[5], r[6]) for r in results]
+            results = [(r[0], format(r[1], '.2f'), format(r[2], '.2f'), r[5]) for r in results]
         else:  # method == 'ratio'
-            headers = ["Name of the file", "Similarity (Ratio)", "Difference (Ratio)", "Lines of code", "Lines Difference"]
+            headers = ["Name of the file", "Similarity (Ratio)", "Difference (Ratio)", "Lines of code"]
             total_similarity = sum(r[3] * r[5] / 100 for r in results) / total_lines_of_code * 100
             total_difference = 100 - total_similarity
-            results = [(r[0], format(r[3], '.2f'), format(r[4], '.2f'), r[5], r[6]) for r in results]
+            results = [(r[0], format(r[3], '.2f'), format(r[4], '.2f'), r[5]) for r in results]
 
         total_lines_difference = sum(r[-1] for r in results)
 
-        footer = ["Total", format(total_similarity, '.2f'), format(total_difference, '.2f'), total_lines_of_code, total_lines_difference]
+        footer = ["Total", format(total_similarity, '.2f'), format(total_difference, '.2f'), total_lines_of_code]
 
         # Modify the results to include the footer and a separator line
         results.append(["-" * len(header) for header in headers])

@@ -82,13 +82,13 @@ Replace `<path-to-dir1>` and `<path-to-dir2>` with the actual paths to the direc
 
 ## Example Output
 
-| Name of the file | Similarity (Ratio) | Difference (Ratio) | Lines of code | Lines Difference |
-|------------------|--------------------|--------------------|---------------|------------------|
-| token.sol        |              96.46 |               3.54 |            41 |               -3 |
-| staking.sol      |              93.21 |               6.79 |           631 |              -25 |
-| vesting.sol      |             100.00 |               0.00 |           102 |                0 |
-|------------------|--------------------|--------------------|---------------|------------------|
-| Total            |              94.28 |               5.72 |           774 |              -28 |
+| Name of the file | Similarity (Ratio) | Difference (Ratio) | Lines of code |
+|------------------|--------------------|--------------------|---------------|
+| token.sol        |              96.46 |               3.54 |            41 |
+| staking.sol      |              93.21 |               6.79 |           631 |
+| vesting.sol      |             100.00 |               0.00 |           102 |
+|------------------|--------------------|--------------------|---------------|
+| Total            |              94.28 |               5.72 |           774 |
 
 ## Notes
 
