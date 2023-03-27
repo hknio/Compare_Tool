@@ -7,15 +7,15 @@ from typing import List, Tuple
 import Levenshtein
 from tabulate import tabulate
 
-def is_excluded(file: str, exclude: List[str]) -> bool:
+def is_excluded(file_path: str, exclude: List[str]) -> bool:
     """
-    Check if a given file is excluded based on a list of exclusion patterns.
+    Check if a given file path is excluded based on a list of exclusion patterns.
 
-    :param file: The file name to be checked.
+    :param file_path: The file path to be checked.
     :param exclude: A list of exclusion patterns (wildcards).
     :return: True if the file is excluded, False otherwise.
     """
-    return any(fnmatch.fnmatch(file, pattern) for pattern in exclude)
+    return any(fnmatch.fnmatch(file_path, pattern) for pattern in exclude)
 
 def get_files(directory: str, exclude: List[str]) -> List[str]:
     """
@@ -148,7 +148,7 @@ def compare_files(file1: str, file2: str, language1: str, language2: str, method
     :param language1: The programming language of the first file.
     :param language2: The programming language of the second file.
     :param method: The comparison method to use ('ratio' or 'distance').
-    :return: A tuple with the similarity and difference (distance or ratio), and the minimum lines of code between the two files.
+    :return: A tuple with the similarity and difference (distance or ratio), and the lines of code of updated file.
     """
     file1_abs_path = str(Path(file1).resolve())
     file2_abs_path = str(Path(file2).resolve())
@@ -170,19 +170,18 @@ def compare_files(file1: str, file2: str, language1: str, language2: str, method
 
     loc1 = len(lines1)
     loc2 = len(lines2)
-    loc = min(loc1, loc2)
 
     if method == 'distance':
         distance = levenshtein_distance(content1_filtered, content2_filtered)
         max_distance = max(len(content1_filtered), len(content2_filtered))
         similarity_distance = (1 - (distance / max_distance)) * 100
         difference_distance = 100 - similarity_distance
-        return similarity_distance, difference_distance, None, None, loc
+        return similarity_distance, difference_distance, None, None, loc2
     else:  # method == 'ratio'
         ratio = levenshtein_ratio(content1_filtered, content2_filtered)
         similarity_ratio = ratio * 100
         difference_ratio = 100 - similarity_ratio
-        return None, None, similarity_ratio, difference_ratio, loc
+        return None, None, similarity_ratio, difference_ratio, loc2
 
 def compare_directory_contents(dir1: str, dir2: str, exclude: List[str], method: str) -> List[Tuple[str, float, float, float, float, int]]:
     """
@@ -194,13 +193,19 @@ def compare_directory_contents(dir1: str, dir2: str, exclude: List[str], method:
     :param method: The comparison method to use ('ratio' or 'distance').
     :return: A list of tuples containing comparison results for each pair of matched files.
     """
-    files1 = {f.name: f for f in Path(dir1).rglob('*') if f.is_file() and not is_excluded(f.name, exclude)}
-    files2 = {f.name: f for f in Path(dir2).rglob('*') if f.is_file() and not is_excluded(f.name, exclude)}
+    files1 = {f.name: f for f in Path(dir1).rglob('*') if f.is_file()}
+    files2 = {f.name: f for f in Path(dir2).rglob('*') if f.is_file()}
     comparison_results = []
     # Files present in both directories
     common_files = files1.keys() & files2.keys()
 
     for file_name in common_files:
+        file1 = files1[file_name]
+        file2 = files2[file_name]
+
+        if is_excluded(str(file1), exclude) or is_excluded(str(file2), exclude):  # Skip excluded files
+            continue
+
         file1 = files1[file_name]
         file2 = files2[file_name]
         lines1, language1 = count_lines(str(file1))
@@ -213,13 +218,20 @@ def compare_directory_contents(dir1: str, dir2: str, exclude: List[str], method:
     added_files = files2.keys() - files1.keys()
     
     for file_name in removed_files | added_files:
-        if file_name in removed_files:
+        lines_difference = 0
+        is_removed_file = file_name in removed_files
+        file_path = files1[file_name] if is_removed_file else files2[file_name]
+
+        if is_excluded(str(file_path), exclude):  # Skip excluded files
+            continue
+
+        if is_removed_file:
             print(f"{file_name} removed in the updated version.")
-            lines_of_code, _ = count_lines(files1[file_name])
+            lines_of_code, _ = count_lines(file_path)
             lines_difference = -lines_of_code
         else:  # file_name in added_files
             print(f"{file_name} is a new file in the updated version.")
-            lines_of_code, _ = count_lines(files2[file_name])
+            lines_of_code, _ = count_lines(file_path)
             lines_difference = lines_of_code
 
         comparison_results.extend([(file_name, 0.0, 100.0, 0.0, 100.0, lines_of_code, lines_difference)])

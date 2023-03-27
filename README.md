@@ -50,10 +50,24 @@ Run the script from the command line with the following arguments:
 - `--exclude`: (optional) A list of filename patterns to exclude from the comparison. For example: `*.sol folder1 folder2` (default: `None`).
 - `--method`: (optional) The comparison method to use: `ratio` or `distance` (default: `ratio`).
 
+Exclude:
+To exclude multiple file extensions and folders, you need to provide a list of exclusion patterns to the --exclude argument. For example, if you want to exclude .bak and .tmp files and the folders named build and test, you would use the following command:
+
+- `python compare_directories.py dir1 dir2 --exclude "*.bak" "*.tmp" "*/build/*" "*/test/*"`
+
+Here's a breakdown of the exclusion patterns used:
+
+- `"*.bak"`: Exclude all files with the .bak extension.
+- `"*.tmp"`: Exclude all files with the .tmp extension.
+- `"*/build/*"`: Exclude all files within folders named build. The asterisks before and after build are used to match any parent or child directories.
+- `"*/test/*"`: Exclude all files within folders named test. The asterisks before and after test are used to match any parent or child directories.
+
+Please note that the patterns should be enclosed in double quotes to prevent shell expansions.
+
 Examples :
 - `python compare_tool.py dir1 dir2` - no options
-- `python compare_tool.py dir1 dir2 --exclude ERC20.sol folder1 folder2` - with exclude argument
-- `python compare_tool.py dir1 dir2 --method ratio` - using Levenshtein.ratio
+- `python compare_directories.py dir1 dir2 --exclude "*.bak" "*.tmp" "*/build/*" "*/test/*"` - with exclude argument
+- `python compare_tool.py dir1 dir2 --method distance` - using Levenshtein.distance
 
 ### Docker
 
