@@ -41,6 +41,7 @@ def get_language_from_extension(extension: str) -> str:
         '.rs': 'Rust',
         '.py': 'Python',
         '.vy': 'Vyper',
+        '.scilla': 'Scilla',
     }
     language = languages.get(extension)
     if language is None:
@@ -133,6 +134,16 @@ def remove_vyper_comments(code: str) -> str:
     code = re.sub(r"#[^\n]*", "", code)
     return code
 
+def remove_scilla_comments(code: str) -> str:
+    """
+    Remove comments from Scilla code.
+
+    :param code: The input code as a string.
+    :return: The input code with comments removed.
+    """
+    code = re.sub(r"\(\*.*?\*\)", "", code)
+    return code
+
 def remove_comments(language: str, code: str) -> str:
     """
     Remove comments from code in a given language.
@@ -147,6 +158,8 @@ def remove_comments(language: str, code: str) -> str:
         return remove_python_comments(code)
     elif language == 'Vyper':
         return remove_vyper_comments(code)
+    elif language == 'Scilla':
+        return remove_scilla_comments(code)
     else:
         raise NotImplementedError(f"Unsupported language: {language}")
 
