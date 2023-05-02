@@ -48,6 +48,7 @@ Run the script from the command line with the following arguments:
 - `dir1`: The first directory to compare.
 - `dir2`: The second directory to compare.
 - `--exclude`: (optional) A list of filename patterns to exclude from the comparison. For example: `*.sol folder1 folder2` (default: `None`).
+- `--include`: (optional) A list of filename patterns to include in the comparison. For example: `*.sol folder1 folder2`. (default: `*` (all files)).
 - `--method`: (optional) The comparison method to use: `ratio` or `distance` (default: `ratio`).
 
 Exclude:
