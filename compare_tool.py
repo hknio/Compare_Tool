@@ -10,12 +10,12 @@ from tabulate import tabulate
 
 def matches(file_path: str, patterns: List[str], relative_to: Optional[str | Path] = None) -> bool:
     """
-    Check if a given file path is excluded based on a list of exclusion patterns.
+    Check if a given file path matches a list of patterns.
 
     :param file_path: The file path to be checked.
     :param patterns: A list of patterns (wildcards).
     :param relative_to: a parent path to omit before matching against the patterns. OPTIONAL
-    :return: True if the file is excluded, False otherwise.
+    :return: True if the file matches the patterns, False otherwise.
     """
     assert patterns, "`patterns` must be given to avoid confusion depending on what the patterns mean"
     if relative_to:
@@ -34,7 +34,7 @@ def is_excluded(file_path: str,
     :param include_patterns: A list of inclusion patterns (wildcards). OPTIONAL
     :param exclude_patterns: A list of exclusion patterns (wildcards). OPTIONAL
     :param relative_to: a parent path to omit before matching against the patterns. OPTIONAL
-    :return: True if the file is included, False otherwise.
+    :return: True if the file is excluded, False otherwise.
     """
     excluded = exclude_patterns and matches(file_path, exclude_patterns, relative_to=relative_to)
     if not include_patterns:
