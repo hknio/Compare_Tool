@@ -289,7 +289,7 @@ def compare_directory_contents(dir1: str, dir2: str,
         (file_path, file_dir) = (files1[file_name], dir1) if is_removed_file else (files2[file_name], dir2)
 
         # filter files
-        if is_excluded(str(file_path), exclude=exclude, include=include, relative_to=file_dir):
+        if is_excluded(str(file_path), exclude_patterns=exclude, include_patterns=include, relative_to=file_dir):
             continue
 
         if is_removed_file:
