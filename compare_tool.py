@@ -2,30 +2,65 @@ import argparse
 import fnmatch
 import re
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import Levenshtein
 from tabulate import tabulate
 
-def is_excluded(file_path: str, exclude: List[str]) -> bool:
+
+def matches(file_path: str, patterns: List[str], relative_to: Optional[str | Path] = None) -> bool:
     """
     Check if a given file path is excluded based on a list of exclusion patterns.
 
     :param file_path: The file path to be checked.
-    :param exclude: A list of exclusion patterns (wildcards).
+    :param patterns: A list of patterns (wildcards).
+    :param relative_to: a parent path to omit before matching against the patterns. OPTIONAL
     :return: True if the file is excluded, False otherwise.
     """
-    return any(fnmatch.fnmatch(file_path, pattern) for pattern in exclude)
+    assert patterns, "`patterns` must be given to avoid confusion depending on what the patterns mean"
+    if relative_to:
+        file_path = str(Path(file_path).relative_to(relative_to))
+    return any(fnmatch.fnmatch(file_path, pattern) for pattern in patterns)
 
-def get_files(directory: str, exclude: List[str]) -> List[str]:
+
+def is_excluded(file_path: str,
+                exclude_patterns: Optional[List[str]] = None,
+                include_patterns: Optional[List[str]] = None,
+                relative_to: Optional[str | Path] = None) -> bool:
+    """
+    Check if a given file path is excluded based on a list of exclusion and inclusion patterns.
+
+    :param file_path: The file path to be checked.
+    :param include_patterns: A list of inclusion patterns (wildcards). OPTIONAL
+    :param exclude_patterns: A list of exclusion patterns (wildcards). OPTIONAL
+    :param relative_to: a parent path to omit before matching against the patterns. OPTIONAL
+    :return: True if the file is included, False otherwise.
+    """
+    excluded = exclude_patterns and matches(file_path, exclude_patterns, relative_to=relative_to)
+    if not include_patterns:
+        return excluded
+    included = matches(file_path, include_patterns, relative_to=relative_to)
+    assert not excluded or not included, (f"conflicting patterns for file path: {file_path}.\n"
+                                          f"include_patterns: {include_patterns}.\n"
+                                          f"exclude patterns: {exclude_patterns}.")
+    return not included
+
+
+# fixme: unused
+def get_files(directory: str, exclude: List[str], include: List[str]) -> List[str]:
     """
     Get all the file paths in a directory, excluding the ones that match the given exclusion patterns.
 
     :param directory: The directory to search for files.
     :param exclude: A list of exclusion patterns (wildcards).
+    :param include: A list of inclusion patterns (wildcards).
     :return: A list of file paths in the given directory, excluding the ones that match the exclusion patterns.
     """
-    all_files = [str(file) for file in Path(directory).rglob('*') if file.is_file() and not is_excluded(str(file), exclude)]
+    all_files = [str(file) for file in Path(directory).rglob('*') if
+                 file.is_file() and not is_excluded(str(file),
+                                                    exclude_patterns=exclude,
+                                                    include_patterns=include,
+                                                    relative_to=directory)]
     return all_files
 
 def get_language_from_extension(extension: str) -> str:
@@ -206,13 +241,18 @@ def compare_files(file1: str, file2: str, language1: str, language2: str, method
         difference_ratio = 100 - similarity_ratio
         return None, None, similarity_ratio, difference_ratio, loc2
 
-def compare_directory_contents(dir1: str, dir2: str, exclude: List[str], method: str) -> List[Tuple[str, float, float, float, float, int]]:
+
+def compare_directory_contents(dir1: str, dir2: str,
+                               exclude: List[str],
+                               include: List[str],
+                               method: str) -> List[Tuple[str, float, float, float, float, int]]:
     """
     Compare the contents of two directories, excluding specified files.
 
     :param dir1: The first input directory path.
     :param dir2: The second input directory path.
     :param exclude: A list of filename patterns to exclude from the comparison.
+    :param include: A list of filename patterns to include in the comparison.
     :param method: The comparison method to use ('ratio' or 'distance').
     :return: A list of tuples containing comparison results for each pair of matched files.
     """
@@ -226,7 +266,9 @@ def compare_directory_contents(dir1: str, dir2: str, exclude: List[str], method:
         file1 = files1[file_name]
         file2 = files2[file_name]
 
-        if is_excluded(str(file1), exclude) or is_excluded(str(file2), exclude):  # Skip excluded files
+        # filter files
+        if any(is_excluded(str(f), exclude_patterns=exclude, include_patterns=include, relative_to=d)
+               for f, d in [(file1, dir1), (file2, dir2)]):
             continue
 
         file1 = files1[file_name]
@@ -243,9 +285,10 @@ def compare_directory_contents(dir1: str, dir2: str, exclude: List[str], method:
     for file_name in removed_files | added_files:
         lines_difference = 0
         is_removed_file = file_name in removed_files
-        file_path = files1[file_name] if is_removed_file else files2[file_name]
+        (file_path, file_dir) = (files1[file_name], dir1) if is_removed_file else (files2[file_name], dir2)
 
-        if is_excluded(str(file_path), exclude):  # Skip excluded files
+        # filter files
+        if is_excluded(str(file_path), exclude=exclude, include=include, relative_to=file_dir):
             continue
 
         if is_removed_file:
@@ -261,7 +304,11 @@ def compare_directory_contents(dir1: str, dir2: str, exclude: List[str], method:
 
     return comparison_results
 
-def main(dir1: str, dir2: str, exclude: List[str] = None, method: str = 'ratio') -> List[Tuple[str, float, float, float, float, int, int]]:
+
+def main(dir1: str, dir2: str,
+         exclude: List[str] = None,
+         include: List[str] = None,
+         method: str = 'ratio') -> List[Tuple[str, float, float, float, float, int, int]]:
     """
     Compare two directories containing source code files.
 
@@ -273,7 +320,9 @@ def main(dir1: str, dir2: str, exclude: List[str] = None, method: str = 'ratio')
     """
     if exclude is None:
         exclude = []
-    results = compare_directory_contents(dir1, dir2, exclude, method)
+    if include is None:
+        include = []
+    results = compare_directory_contents(dir1, dir2, exclude, include, method)
     return results
 
 # Main function and argparse code ...
@@ -282,10 +331,11 @@ if __name__ == "__main__":
     parser.add_argument('dir1', help='First directory')
     parser.add_argument('dir2', help='Second directory')
     parser.add_argument('--exclude', nargs='+', default=[], help='List of filename patterns to exclude')
+    parser.add_argument('--include', nargs='+', default=[], help='List of filename patterns to include')
     parser.add_argument('--method', choices=['ratio', 'distance'], default='ratio', help='Comparison method: ratio or distance')
     args = parser.parse_args()
 
-    results = main(args.dir1, args.dir2, args.exclude, args.method)
+    results = main(args.dir1, args.dir2, args.exclude, args.include, args.method)
 
     if len(results) > 0:
         total_lines_of_code = sum(r[-2] for r in results)
