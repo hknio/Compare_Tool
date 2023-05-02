@@ -31,8 +31,8 @@ def is_excluded(file_path: str,
     Check if a given file path is excluded based on a list of exclusion and inclusion patterns.
 
     :param file_path: The file path to be checked.
-    :param include_patterns: A list of inclusion patterns (wildcards). OPTIONAL
     :param exclude_patterns: A list of exclusion patterns (wildcards). OPTIONAL
+    :param include_patterns: A list of inclusion patterns (wildcards). OPTIONAL
     :param relative_to: a parent path to omit before matching against the patterns. OPTIONAL
     :return: True if the file is excluded, False otherwise.
     """
