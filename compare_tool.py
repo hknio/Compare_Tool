@@ -54,7 +54,8 @@ def get_files(directory: str, exclude: List[str], include: List[str]) -> List[st
     :param directory: The directory to search for files.
     :param exclude: A list of exclusion patterns (wildcards).
     :param include: A list of inclusion patterns (wildcards).
-    :return: A list of file paths in the given directory, excluding the ones that match the exclusion patterns.
+    :return: A list of file paths in the given directory, excluding the ones that match the exclusion patterns
+                or do not match the inclusion patterns.
     """
     all_files = [str(file) for file in Path(directory).rglob('*') if
                  file.is_file() and not is_excluded(str(file),
@@ -247,7 +248,7 @@ def compare_directory_contents(dir1: str, dir2: str,
                                include: List[str],
                                method: str) -> List[Tuple[str, float, float, float, float, int]]:
     """
-    Compare the contents of two directories, excluding specified files.
+    Compare the contents of two directories, including/excluding specified files.
 
     :param dir1: The first input directory path.
     :param dir2: The second input directory path.
@@ -315,6 +316,7 @@ def main(dir1: str, dir2: str,
     :param dir1: The first input directory path.
     :param dir2: The second input directory path.
     :param exclude: A list of filename patterns to exclude from the comparison (default: empty list).
+    :param include: A list of filename patterns to include in the comparison (default: empty list).
     :param method: The comparison method to use ('ratio' or 'distance', default: 'ratio').
     :return: A list of tuples containing comparison results for each pair of matched files.
     """
