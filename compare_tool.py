@@ -1,14 +1,17 @@
 import argparse
 import fnmatch
 import re
+import tempfile
 from pathlib import Path
 from typing import List, Tuple, Optional
 
 import Levenshtein
 from tabulate import tabulate
 
+from utils.git import clone_specific_rev_two
 
-def matches(file_path: str, patterns: List[str], relative_to: Optional[str | Path] = None) -> bool:
+
+def matches(file_path: str, patterns: List[str], relative_to: Optional[str] = None) -> bool:
     """
     Check if a given file path matches a list of patterns.
 
@@ -26,7 +29,7 @@ def matches(file_path: str, patterns: List[str], relative_to: Optional[str | Pat
 def is_excluded(file_path: str,
                 exclude_patterns: Optional[List[str]] = None,
                 include_patterns: Optional[List[str]] = None,
-                relative_to: Optional[str | Path] = None) -> bool:
+                relative_to: Optional[str] = None) -> bool:
     """
     Check if a given file path is excluded based on a list of exclusion and inclusion patterns.
 
@@ -36,14 +39,9 @@ def is_excluded(file_path: str,
     :param relative_to: a parent path to omit before matching against the patterns. OPTIONAL
     :return: True if the file is excluded, False otherwise.
     """
+    included = not include_patterns or matches(file_path, include_patterns, relative_to=relative_to)
     excluded = exclude_patterns and matches(file_path, exclude_patterns, relative_to=relative_to)
-    if not include_patterns:
-        return excluded
-    included = matches(file_path, include_patterns, relative_to=relative_to)
-    assert not excluded or not included, (f"conflicting patterns for file path: {file_path}.\n"
-                                          f"include_patterns: {include_patterns}.\n"
-                                          f"exclude patterns: {exclude_patterns}.")
-    return not included
+    return not included or excluded
 
 
 # fixme: unused
@@ -306,38 +304,43 @@ def compare_directory_contents(dir1: str, dir2: str,
     return comparison_results
 
 
-def main(dir1: str, dir2: str,
+def main(repo: str, commit_or_branch1: str, commit_or_branch2: str,
          exclude: List[str] = None,
          include: List[str] = None,
          method: str = 'ratio') -> List[Tuple[str, float, float, float, float, int, int]]:
     """
-    Compare two directories containing source code files.
+    Compare two revisions of the same git repository.
 
-    :param dir1: The first input directory path.
-    :param dir2: The second input directory path.
+    :param repo: The git repo url.
+    :param commit_or_branch1: The first commit (or branch) to compare.
+    :param commit_or_branch2: The second commit (or branch) to compare.
     :param exclude: A list of filename patterns to exclude from the comparison (default: empty list).
     :param include: A list of filename patterns to include in the comparison (default: empty list).
     :param method: The comparison method to use ('ratio' or 'distance', default: 'ratio').
     :return: A list of tuples containing comparison results for each pair of matched files.
     """
+    dir1, dir2 = (Path(tempfile.gettempdir()) / "hknio_compare_tool" / suffix for suffix in ["dir1", "dir2"])
+    clone_specific_rev_two(repo, commit_or_branch1, commit_or_branch2, dir1, dir2)
     if exclude is None:
         exclude = []
     if include is None:
         include = []
+    print("Starting the comparison...")
     results = compare_directory_contents(dir1, dir2, exclude, include, method)
     return results
 
 # Main function and argparse code ...
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Compare two directories containing source code files.')
-    parser.add_argument('dir1', help='First directory')
-    parser.add_argument('dir2', help='Second directory')
+    parser = argparse.ArgumentParser(description='Compare revisions of a git repository.')
+    parser.add_argument('repo', help='Git repo URL')
+    parser.add_argument('rev1', help='First revision to compare (commit or branch; tags are not supported)')
+    parser.add_argument('rev2', help='Second revision to compare (commit or branch; tags are not supported)')
     parser.add_argument('--exclude', nargs='+', default=[], help='List of filename patterns to exclude')
     parser.add_argument('--include', nargs='+', default=[], help='List of filename patterns to include')
     parser.add_argument('--method', choices=['ratio', 'distance'], default='ratio', help='Comparison method: ratio or distance')
     args = parser.parse_args()
 
-    results = main(args.dir1, args.dir2, args.exclude, args.include, args.method)
+    results = main(args.repo, args.rev1, args.rev2, args.exclude, args.include, args.method)
 
     if len(results) > 0:
         total_lines_of_code = sum(r[-2] for r in results)
