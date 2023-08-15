@@ -42,6 +42,7 @@ def get_language_from_extension(extension: str) -> str:
         '.py': 'Python',
         '.vy': 'Vyper',
         '.scilla': 'Scilla',
+        '.tsol': 'Solidity',
     }
     language = languages.get(extension)
     if language is None:
