@@ -104,6 +104,19 @@ def levenshtein_ratio(s1: str, s2: str) -> float:
     ratio = Levenshtein.ratio(s1, s2)
     return ratio
 
+def next_code_block_end(code: str) -> int:
+    depth = 0
+    for i, c in enumerate(code):
+        if c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                return i + 1
+            elif depth < 0:
+                break
+    return -1
+
 def remove_rust_tests(code: str) -> str:
     """
     Exclude Rust tests from comparison.
@@ -115,24 +128,17 @@ def remove_rust_tests(code: str) -> str:
     """
     if re.match(r"^\s*#!\[cfg\(test\)\]", code):
         return ""
+    
+    test_block_indeces = [i.start() for i in re.finditer("#\[cfg\(test\)\]", code)]
+    original_code = code
 
-    start = code.find("#[cfg(test)]")
-    end = len(code)
-    depth = 0
-
-    for i, c in enumerate(code[start:end]):
-        if c == '{':
-            depth += 1
-        elif c == '}':
-            depth -= 1
-            if depth == 0:
-                end = start + i + 1
-                break
-            # don't remove anything if parentheses are broken
-            elif depth < 0:
-                return code
-
-    return code[:start] + code[end:]
+    for start in reversed(test_block_indeces):
+        end = next_code_block_end(code[start:])
+        # don't remove anything if parentheses are broken
+        if end == -1:
+            return original_code
+        code = code[:start] + code[start + end:]
+    return code
 
 def remove_rust_solidity_comments(code: str) -> str:
     """
