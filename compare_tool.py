@@ -6,6 +6,7 @@ from typing import List, Tuple
 
 import Levenshtein
 from tabulate import tabulate
+from os.path import relpath
 
 def is_excluded(file_path: str, exclude: List[str]) -> bool:
     """
@@ -217,8 +218,8 @@ def compare_directory_contents(dir1: str, dir2: str, exclude: List[str], method:
     :param method: The comparison method to use ('ratio' or 'distance').
     :return: A list of tuples containing comparison results for each pair of matched files.
     """
-    files1 = {f.name: f for f in Path(dir1).rglob('*') if f.is_file()}
-    files2 = {f.name: f for f in Path(dir2).rglob('*') if f.is_file()}
+    files1 = {relpath(f, dir1): f for f in Path(dir1).rglob('*') if f.is_file()}
+    files2 = {relpath(f, dir2): f for f in Path(dir2).rglob('*') if f.is_file()}
     comparison_results = []
     # Files present in both directories
     common_files = files1.keys() & files2.keys()
