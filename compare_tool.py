@@ -224,7 +224,7 @@ def compare_directory_contents(dir1: str, dir2: str, exclude: List[str], method:
     # Files present in both directories
     common_files = files1.keys() & files2.keys()
 
-    for file_name in common_files:
+    for file_name in sorted(common_files):
         file1 = files1[file_name]
         file2 = files2[file_name]
 
@@ -242,7 +242,7 @@ def compare_directory_contents(dir1: str, dir2: str, exclude: List[str], method:
     removed_files = files1.keys() - files2.keys()
     added_files = files2.keys() - files1.keys()
     
-    for file_name in removed_files | added_files:
+    for file_name in sorted(removed_files | added_files):
         lines_difference = 0
         is_removed_file = file_name in removed_files
         file_path = files1[file_name] if is_removed_file else files2[file_name]
