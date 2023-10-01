@@ -52,7 +52,7 @@ def get_language_from_extension(extension: str) -> str:
 
 def count_lines(file_path: str) -> Tuple[int, str]:
     """
-    Count the non-empty lines of code in a file, excluding comments.
+    Count the non-empty lines of code in a file, excluding non-code.
 
     :param file_path: The file path.
     :return: A tuple containing the number of non-empty lines and the programming language.
@@ -64,8 +64,8 @@ def count_lines(file_path: str) -> Tuple[int, str]:
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    content_no_comments = remove_comments(language, content)
-    lines = content_no_comments.splitlines()
+    content_only_code = remove_non_code(language, content)
+    lines = content_only_code.splitlines()
     non_empty_lines = [line for line in lines if line.strip()]
     return len(non_empty_lines), language
 
@@ -104,6 +104,35 @@ def levenshtein_ratio(s1: str, s2: str) -> float:
     ratio = Levenshtein.ratio(s1, s2)
     return ratio
 
+def remove_rust_tests(code: str) -> str:
+    """
+    Exclude Rust tests from comparison.
+    #![cfg(test)] - marks the whole file as a test module.
+    #[cfg(test)] - marks the following piece of code as test module/function.
+
+    :param code: The input code as a string.
+    :return: The input code with tests removed.
+    """
+    if re.match(r"^\s*#!\[cfg\(test\)\]", code):
+        return ""
+
+    start = code.find("#[cfg(test)]")
+    end = len(code)
+    depth = 0
+
+    for i, c in enumerate(code[start:end]):
+        if c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                end = start + i + 1
+                break
+            # don't remove anything if parentheses are broken
+            elif depth < 0:
+                return code
+
+    return code[:start] + code[end:]
 
 def remove_rust_solidity_comments(code: str) -> str:
     """
@@ -146,15 +175,18 @@ def remove_scilla_comments(code: str) -> str:
     code = re.sub(r"\(\*.*?\*\)", "", code)
     return code
 
-def remove_comments(language: str, code: str) -> str:
+def remove_non_code(language: str, code: str) -> str:
     """
-    Remove comments from code in a given language.
+    Remove comments (and Rust tests) from code in a given language.
 
     :param language: The programming language of the input code.
     :param code: The input code as a string.
-    :return: The input code with comments removed.
+    :return: The input code with non-code removed.
     """
-    if language in ['Rust', 'Solidity']:
+    if language == 'Rust':
+        code = remove_rust_tests(code)
+        return remove_rust_solidity_comments(code)
+    elif language == 'Solidity':
         return remove_rust_solidity_comments(code)
     elif language == 'Python':
         return remove_python_comments(code)
@@ -185,11 +217,11 @@ def compare_files(file1: str, file2: str, language1: str, language2: str, method
     if language1 != language2:
         raise ValueError("Files have different languages, cannot compare.")
 
-    content1_no_comments = remove_comments(language1, content1)
-    content2_no_comments = remove_comments(language2, content2)
+    content1_only_code = remove_non_code(language1, content1)
+    content2_only_code = remove_non_code(language2, content2)
 
-    lines1 = [line for line in content1_no_comments.splitlines() if line.strip()]
-    lines2 = [line for line in content2_no_comments.splitlines() if line.strip()]
+    lines1 = [line for line in content1_only_code.splitlines() if line.strip()]
+    lines2 = [line for line in content2_only_code.splitlines() if line.strip()]
 
     content1_filtered = "\n".join(lines1)
     content2_filtered = "\n".join(lines2)
